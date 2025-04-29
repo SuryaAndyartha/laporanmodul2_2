@@ -365,7 +365,152 @@ int main()
 [penjelasan]
 
 ```c
+#define MAX_STRING 512
+```
+[penjelasan]
 
+```c
+typedef struct SharedMessage{
+    char message[MAX_STRING];
+    int message_counter;
+} SharedMessage;
+```
+[penjelasan]
+
+```c
+typedef struct {
+    int worker_count;
+    int message_count;
+} Data_for_Message_Queue; 
+```
+[penjelasan]
+
+```c
+typedef struct {
+    long int worker_number;
+    char message[MAX_STRING];
+} Message_for_Worker;
+```
+[penjelasan]
+
+```c
+int main()
+{
+    // Shared Memory untuk pesan dari client.c
+    key_t key = 1234;
+    int shmid1 = shmget(key, sizeof(SharedMessage), IPC_CREAT | 0666);
+    if(shmid1 == -1){
+        printf("shmget gagal.\n");
+        return 1;
+    }
+    ...
+}
+```
+[penjelasan]
+
+```c
+void* client_message = shmat(shmid1, NULL, 0);
+if(client_message == (void *)-1){
+    printf("shmat gagal.\n");
+    return 2;
+}
+```
+[penjelasan]
+
+```c
+SharedMessage *client_data =  (SharedMessage*)client_message;
+```
+[penjelasan]
+
+```c
+FILE *log_file = fopen("sistem.log", "a");
+if(log_file == NULL){
+    printf("fopen gagal.\n");
+    return 3;
+}
+```
+[penjelasan]
+
+```c
+for (int i = 1; i <= client_data->message_counter; i++)
+{
+    fprintf(log_file, "Received at lb: %s (#message %d)\n", client_data->message, i);
+}
+```
+[penjelasan]
+
+```c
+fclose(log_file);
+shmctl(shmid1, IPC_RMID, NULL);
+```
+[penjelasan]
+
+```c
+int worker_count;
+scanf("%d", &worker_count);
+```
+[penjelasan]
+
+```c
+key = 4321;
+int shmid2 = shmget(key, sizeof(Data_for_Message_Queue), IPC_CREAT | 0666);
+if(shmid2 == -1){
+    printf("shmget gagal.\n");
+    return 1;
+}
+```
+[penjelasan]
+
+```c
+void* shared_memory_for_worker = shmat(shmid2, NULL, 0);
+if(shared_memory_for_worker == (void *)-1){
+    printf("shmat gagal.\n");
+    return 2;
+}
+```
+[penjelasan]
+
+```c
+Data_for_Message_Queue *data = (Data_for_Message_Queue*) shared_memory_for_worker;
+```
+[penjelasan]
+
+```c
+data->message_count = client_data->message_counter;
+data->worker_count = worker_count;
+```
+[penjelasan]
+
+```c
+// Message Queue untuk worker
+Message_for_Worker buff;
+int msgid;
+key = 2143;
+msgid = msgget(key, 0666 | IPC_CREAT);
+int index_worker = 1;
+```
+[penjelasan]
+
+```c
+for (int i = 1; i <= client_data->message_counter; i++)
+{
+    if (index_worker > worker_count) index_worker -= worker_count;
+    buff.worker_number = index_worker;
+    strcpy(buff.message, client_data->message);
+    msgsnd(msgid, &buff, sizeof(MAX_STRING), 0);
+    index_worker++;
+}
+```
+[penjelasan]
+
+```c
+shmdt(shared_memory_for_worker);
+shmdt(client_message);
+```
+[penjelasan]
+
+```c
+return 0;
 ```
 
 ### Foto Hasil Output
@@ -465,7 +610,139 @@ int main()
 }
 ```
 
-### Penjelasan:
+```c
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/ipc.h>
+#include <sys/shm.h>
+#include <sys/msg.h>
+```
+[penjelasan]
+
+```c
+#define MAX_STRING 512
+```
+[penjelasan]
+
+```c
+typedef struct {
+    int worker_count;
+    int message_count;
+} Data_for_Message_Queue; 
+```
+[penjelasan]
+
+```c
+typedef struct {
+    long int worker_number;
+    char message[MAX_STRING];
+} Message_for_Worker;
+```
+[penjelasan]
+
+```c
+int main()
+{
+
+    // Shared Memory untuk jumlah worker
+    key_t key = 4321;
+    int shmid = shmget(key, sizeof(Data_for_Message_Queue), IPC_CREAT | 0666);
+    if(shmid == -1){
+        printf("shmget gagal.\n");
+        return 1;
+    }
+    ...
+}
+```
+[penjelasan]
+
+```c
+void* shared_memory_for_worker = shmat(shmid, NULL, 0);
+if(shared_memory_for_worker == (void *)-1){
+    printf("shmat gagal.\n");
+    return 2;
+}
+```
+[penjelasan]
+
+```c
+Data_for_Message_Queue *data = (Data_for_Message_Queue*) shared_memory_for_worker;
+```
+[penjelasan]
+
+```c
+int message_count = data->message_count;
+int worker_count = data->worker_count;
+```
+[penjelasan]
+
+```c
+FILE *log_file = fopen("sistem.log", "a");
+if(log_file == NULL){
+    printf("fopen gagal.\n");
+    return 3;
+}
+```
+[penjelasan]
+
+```c
+int counter_message_received[worker_count];
+for (int i = 0; i < worker_count; i++) // Init
+    counter_message_received[i] = 0;
+```
+[penjelasan]
+
+```c
+key = 2143;
+int msgid = msgget(key, 0666 | IPC_CREAT);
+int index_worker = 1;
+Message_for_Worker msg;
+```
+[penjelasan]
+
+```c
+for (int i = 0; i < message_count; i++)
+{
+    if (index_worker > worker_count) index_worker -= worker_count;
+
+    msgrcv(msgid, &msg, sizeof(MAX_STRING), index_worker, 0);
+    if (msg.worker_number != index_worker)
+    {
+        printf("Index worker mismatch\n");
+        return -1;
+    }
+
+    fprintf(log_file, "Worker%d: message received\n", index_worker);
+
+    counter_message_received[index_worker-1]++;
+
+    index_worker++;
+}
+```
+[penjelasan]
+
+```c
+for (int i = 0; i < worker_count; i++)
+{
+    fprintf(log_file, "Worker %d: %d messages\n", i+1, counter_message_received[i]);
+}
+```
+[penjelasan]
+
+```c
+fclose(log_file);
+msgctl(msgid, IPC_RMID, NULL);
+shmdt(shared_memory_for_worker);
+shmctl(shmid, IPC_RMID, NULL);
+```
+[penjelasan]
+
+```c
+return 0;
+```
+[penjelasan]
 
 ### Foto Hasil Output
 
