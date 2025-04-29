@@ -490,19 +490,40 @@ key = 2143;
 msgid = msgget(key, 0666 | IPC_CREAT);
 int index_worker = 1;
 ```
-[penjelasan]
+Bagian ini bertujuan untuk menyiapkan _message queue_ yang akan digunakan untuk mengirim pesan ke masing-masing _worker_. Pertama, dibuat sebuah variabel `buff` bertipe `struct Message_for_Worker` sebagai _buffer_ untuk menyimpan pesan sebelum dikirim. Kemudian, `key` diatur ke `2143` (hanya sebagai pembeda). Setelah itu, fungsi `msgget(key, 0666 | IPC_CREAT)` dipanggil dan hasilnya disimpan dalam `msgid`. `msgget` memiliki dua parameter: parameter pertama adalah `key` dan parameter kedua adalah `flag` yang terdiri dari `0666` (izin _read_ and _write_) serta `IPC_CREAT` untuk membuat _message queue_ jika belum ada. Terakhir, `index_worker` diatur ke `1` sebagai penanda awal _worker_ yang akan menerima pesan pertama, yang akan digunakan dalam _round robin_ distribusi pesan.
 
 ```c
 for (int i = 1; i <= client_data->message_counter; i++)
 {
-    if (index_worker > worker_count) index_worker -= worker_count;
-    buff.worker_number = index_worker;
-    strcpy(buff.message, client_data->message);
-    msgsnd(msgid, &buff, sizeof(MAX_STRING), 0);
-    index_worker++;
+    ...
 }
 ```
-[penjelasan]
+Bagian ini menjalankan proses pengiriman pesan ke _worker_ secara bergilir menggunakan metode _round robin_ dengan `for loop`. Perulangan dilakukan sebanyak jumlah pesan yang dikirim _client_ (`client_data->message_counter`). Di dalam _loop_, akan dilakukan:
+
+   - ```c
+     if (index_worker > worker_count) index_worker -= worker_count;
+     ```
+     Pemeriksaan apakah `index_worker` melebihi jumlah _worker_ (`worker_count)`. Jika iya, maka `index_worker` dikurangi `worker_count` agar kembali ke _worker_ pertama.
+
+   - ```c
+     buff.worker_number = index_worker;
+     ```
+     Berikutnya nilai `index_worker` disimpan ke `buff.worker_number`, yang menunjukkan nomor _worker_ tujuan.
+
+   - ```c
+     strcpy(buff.message, client_data->message);
+     ```
+     Pesan dari _client_ (`client_data->message`) disalin ke `buff.message` menggunakan `strcpy`.
+
+   - ```c
+     msgsnd(msgid, &buff, sizeof(MAX_STRING), 0);
+     ```
+     Fungsi `msgsnd(msgid, &buff, sizeof(MAX_STRING), 0)` akan dipanggil untuk mengirim pesan ke _message queue_. `msgsnd` mengirim data ke _queue_ dengan ID `msgid`, data yang dikirim adalah alamat dari `buff`, ukuran pesan yang dikirim adalah `sizeof(MAX_STRING)`, dan `flag 0` yang menunjukkan operasi diblokir jika _queue_ penuh.
+
+   - ```c
+     index_worker++;
+     ```
+     Setelah satu pesan dikirim, `index_worker` ditambah satu agar pesan berikutnya dikirim ke _worker_ selanjutnya.
 
 ```c
 shmdt(shared_memory_for_worker);
