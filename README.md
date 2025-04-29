@@ -529,7 +529,7 @@ Bagian ini menjalankan proses pengiriman pesan ke _worker_ secara bergilir mengg
 shmdt(shared_memory_for_worker);
 shmdt(client_message);
 ```
-Fungsi `shmdt` adalah fungsi yang digunakan untuk melepaskan _shared memory_ yang sebelumnya telah dipetakan. Fungsi ini memastikan bahwa proses tidak lagi mengakses _shared memory_ baik dari struktur data `shared_memory_for_worker` dan `client_message`.
+Fungsi `shmdt` adalah fungsi yang digunakan untuk melepaskan _shared memory_ yang sebelumnya telah dipetakan. Fungsi ini memastikan bahwa proses tidak lagi mengakses _shared memory_ baik dari struktur data `shared_memory_for_worker` maupun `client_message`.
 
 ```c
 return 0;
