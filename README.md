@@ -79,7 +79,7 @@ Worker 3: 3 messages
 
 ### Penyelesaian
 
-### a. client.c; Code Lengkap:
+### a.  Client Mengirimkan Pesan ke Load Balancer (client.c); Code Lengkap:
 
 ```c
 #include <stdio.h>
@@ -247,7 +247,7 @@ Kode diakhiri oleh `return 0` yang menandakan bahwa program telah berhasil dieks
 
 ![image alt](https://github.com/SuryaAndyartha/laporanmodul2_2/blob/main/Screenshot%202025-04-29%20at%2007.06.58.png?raw=true)
 
-### b. loadbalancer.c; Code Lengkap:
+### b.  Load Balancer Mendistribusikan Pesan ke Worker Secara Round-Robin (loadbalancer.c); Code Lengkap:
 
 ```c
 #include <stdio.h>
@@ -372,7 +372,8 @@ int main()
 
 ![image alt](https://github.com/SuryaAndyartha/laporanmodul2_2/blob/main/Screenshot%202025-04-29%20at%2007.08.11.png?raw=true)
 
-### c. worker.c; Code Lengkap:
+### c. Worker Mencatat Pesan yang Diterima 
+### d. Catat Total Pesan yang Diterima Setiap Worker di Akhir Eksekusi (worker.c); Code Lengkap:
 
 ```c
 #include <stdio.h>
