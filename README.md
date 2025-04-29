@@ -362,12 +362,12 @@ int main()
 #include <sys/shm.h>
 #include <sys/msg.h>
 ```
-[penjelasan]
+Kode dimulai oleh beberapa _library_ penting untuk menjalankan program sesuai yang diinginkan. `#include <stdio.h>` menyediakan fungsi `printf`, `fprintf`, dan `fopen`. `#include <string.h>` menyediakan fungsi `strcpy`. `#include <stdlib.h>` menyediakan fungsi `exit`. `#include <unistd.h>` menyediakan fungsi `shmdt`. `#include <sys/ipc.h>` menyediakan `key_t`. `#include <sys/shm.h>` menyediakan fungsi `shmget`, `shmat`, dan `shmctl`. `#include <sys/msg.h>` menyediakan fungsi `msgget` dan `msgsnd`.
 
 ```c
 #define MAX_STRING 512
 ```
-[penjelasan]
+Bagian ini mendefinisikan ukuran maksimal _array_ karakter yang akan digunakan untuk menyimpan _string_ sebagai 512 dengan `#define MAX_STRING 512`.
 
 ```c
 typedef struct SharedMessage{
@@ -375,7 +375,7 @@ typedef struct SharedMessage{
     int message_counter;
 } SharedMessage;
 ```
-[penjelasan]
+Di bagian ini, kode akan membuat sebuah `struct` dengan `typedef struct SharedMessage`, yang berfungsi untuk mengelompokkan dua data: `message`, yaitu _array_ karakter berukuran `MAX_STRING` yang akan menyimpan pesan dari _input_, dan `message_counter`, yaitu variabel bertipe `int` yang akan menyimpan jumlah pesan.
 
 ```c
 typedef struct {
@@ -383,7 +383,7 @@ typedef struct {
     int message_count;
 } Data_for_Message_Queue; 
 ```
-[penjelasan]
+Di bagian ini, kode akan membuat sebuah `struct` dengan `typedef struct Data_for_Message_Queue`, yang berfungsi untuk mengelompokkan dua data: `worker_count`, yaitu variabel bertipe `int` untuk menyimpan jumlah _worker_ yang tersedia, dan `message_count` yang merupakan variabel bertipe `int` juga untuk menyimpan total jumlah pesan dari _client_.
 
 ```c
 typedef struct {
@@ -391,7 +391,7 @@ typedef struct {
     char message[MAX_STRING];
 } Message_for_Worker;
 ```
-[penjelasan]
+Di bagian ini, kode akan membuat sebuah `struct` dengan `typedef struct Message_for_Worker`, yang berfungsi untuk mengelompokkan dua data: `worker_number`, yaitu variabel bertipa `long int` untuk menunjukkan nomor _worker_ tujuan, dan `message`, yaitu  _array_ karakter berukuran `MAX_STRING` untuk menyimpan isi pesan yang akan dikirim ke _worker_.
 
 ```c
 int main()
@@ -406,7 +406,8 @@ int main()
     ...
 }
 ```
-[penjelasan]
+`int main(){...}` adalah fungsi utama yang menjadi titik masuk eksekusi program. Di dalamnya, program dimulai dan dieksekusi.
+Setelahnya, terdapat bagian yang akan mendeklarasikan sebuah variabel `key` bertipe `key_t` dan memberinya nilai `1234` untuk mengakses _shared memory_ antara _client_ dan _load balancer_. Berikutnya ada fungsi `shmget` yang memiliki tiga parameter. Parameter pertama adalah `key`. Parameter kedua adalah `sizeof(SharedMessage)`, yang menentukan ukuran dari _shared memory_, dalam kasus ini ukuran `SharedMessage`. Parameter ketiga adalah `flag`, yaitu `IPC_CREAT` untuk membuat _shared memory_ jika belum ada dan `0666` untuk menentukan izin akses (_read and write_). Jika `shmget` gagal, maka `shmid1` akan bernilai `-1`, sehingga program akan mencetak pesan `"shmget gagal."` dan mengembalikan nilai `1` sebagai tanda kegagalan.
 
 ```c
 void* client_message = shmat(shmid1, NULL, 0);
@@ -415,12 +416,12 @@ if(client_message == (void *)-1){
     return 2;
 }
 ```
-[penjelasan]
+`void* client_message` adalah sebuah _pointer_ bertipe `void*` (tipe ini mampu menyimpan berbagai tipe data) yang digunakan untuk menyimpan alamat memori dari _shared memory_ antara _client_ dan _load balancer_. Variabel ini akan menyimpan nilai yang dikembalikan oleh fungsi `shmat` dengan tiga parameter. Parameter pertama adalah `shmid1`, yaitu ID _shared memory_. Parameter kedua adalah `NULL` yang berarti sistem akan memilih alamat yang sesuai untuk pemetaan. Parameter ketiga adalah `flag`, yang diatur ke 0 untuk pemetaan standar. Jika gagal, `shmat` akan mengembalikan `(void *)-1`, sehingga program akan mencetak pesan `"shmat gagal."` dan mengembalikan `nilai 2` sebagai tanda kegagalan. (Nilai `return` yang berbeda hanya digunakan untuk memudahkan pemeriksaan kesalahan/_debugging_).
 
 ```c
 SharedMessage *client_data =  (SharedMessage*)client_message;
 ```
-[penjelasan]
+`SharedMessage *client_data = (SharedMessage*)client_message` adalah konversi (_casting_) _pointer_ `client_message` bertipe `void*` ke tipe _pointer_ `SharedMessage*`. Ini memungkinkan akses langsung ke `struct SharedMessage` yang ada di dalam _shared memory_.
 
 ```c
 FILE *log_file = fopen("sistem.log", "a");
@@ -429,7 +430,7 @@ if(log_file == NULL){
     return 3;
 }
 ```
-[penjelasan]
+`FILE *log_file = fopen("sistem.log", "a")` akan membuka _log file_ bernama `sistem.log` dalam mode _append_ (`"a"`) menggunakan fungsi `fopen`. Mode _append_ berarti data baru akan ditambahkan ke akhir _file_ jika _file_ tersebut sudah ada. Jika _file_ tidak ada, maka _file_ baru akan dibuat. Jika _log file_ gagal dibuka (`if(log_file == NULL)`), akan dicetak pesan `"fopen gagal."` dan program mengembalikan nilai dengan `return 3` sebagai tanda kegagalan. 
 
 ```c
 for (int i = 1; i <= client_data->message_counter; i++)
@@ -437,19 +438,19 @@ for (int i = 1; i <= client_data->message_counter; i++)
     fprintf(log_file, "Received at lb: %s (#message %d)\n", client_data->message, i);
 }
 ```
-[penjelasan]
+Jika pembukaan _log file_ tidak gagal, maka akan ada bagian yang digunakan untuk mencatat `log` sebanyak jumlah `message_counter` (dari indeks pertama atau `i = 1` sampai batas `message_counter` atau `i <= client_data->message_counter`). Di dalam _loop_ yang menggunakan `for`, fungsi `fprintf` dipanggil untuk menulis ke _log file_ dengan format yang sudah disimpan oleh _pointer_ `client_data->message` dan nomor urutan pesan atau indeks ke-`i` itu sendiri.
 
 ```c
 fclose(log_file);
 shmctl(shmid1, IPC_RMID, NULL);
 ```
-[penjelasan]
+Setelah selesai menulis, _file_ ditutup menggunakan `fclose(log_file)` untuk memastikan tidak ada kebocoran sumber daya atau hal tidak diinginkan lainnya. Lalu akan ada baris yang memanggil `shmctl` untuk menghapus _shared memory segment_ dengan ID `shmid1`. Parameter `IPC_RMID` menunjukkan bahwa memori tersebut akan dihapus, dan paramter `NULL` berarti program tidak mmebutuhkan `struct` tambahan.
 
 ```c
 int worker_count;
 scanf("%d", &worker_count);
 ```
-[penjelasan]
+Di bagian ini, terjadi deklarasi variabel bertipe `int` dengan nama `worker_count` yang akan menyimpan berapa banyak jumlah _worker_ yang akan melakukan proses berikutnya. Fungsi `scanf` digunakan untuk meminta _user input_ secara _arbitrary_. 
 
 ```c
 key = 4321;
@@ -459,7 +460,7 @@ if(shmid2 == -1){
     return 1;
 }
 ```
-[penjelasan]
+Bagian ini akan mendeklarasikan sebuah variabel `key` bertipe `key_t` dan memberinya nilai `4321` (hanya sebagai pembeda) untuk mengakses _shared memory_ antara _load balancer_ dan _worker_. Berikutnya ada fungsi `shmget` yang memiliki tiga parameter. Parameter pertama adalah `key`. Parameter kedua adalah `sizeof(Data_for_Message_Queue)`, yang menentukan ukuran dari _shared memory_, dalam kasus ini ukuran `Data_for_Message_Queue`. Parameter ketiga adalah `flag`, yaitu `IPC_CREAT` untuk membuat _shared memory_ jika belum ada dan `0666` untuk menentukan izin akses (_read and write_). Jika `shmget` gagal, maka `shmid2` akan bernilai `-1`, sehingga program akan mencetak pesan `"shmget gagal."` dan mengembalikan nilai `1` sebagai tanda kegagalan.
 
 ```c
 void* shared_memory_for_worker = shmat(shmid2, NULL, 0);
@@ -468,18 +469,18 @@ if(shared_memory_for_worker == (void *)-1){
     return 2;
 }
 ```
-[penjelasan]
+`void* shared_memory_for_worker` adalah sebuah _pointer_ bertipe `void*` (tipe ini mampu menyimpan berbagai tipe data) yang digunakan untuk menyimpan alamat memori dari _shared memory_ antara _load balancer_ dan _worker_. Variabel ini akan menyimpan nilai yang dikembalikan oleh fungsi `shmat` dengan tiga parameter. Parameter pertama adalah `shmid2`, yaitu ID _shared memory_. Parameter kedua adalah `NULL` yang berarti sistem akan memilih alamat yang sesuai untuk pemetaan. Parameter ketiga adalah `flag`, yang diatur ke 0 untuk pemetaan standar. Jika gagal, `shmat` akan mengembalikan `(void *)-1`, sehingga program akan mencetak pesan `"shmat gagal."` dan mengembalikan `nilai 2` sebagai tanda kegagalan. 
 
 ```c
 Data_for_Message_Queue *data = (Data_for_Message_Queue*) shared_memory_for_worker;
 ```
-[penjelasan]
+`Data_for_Message_Queue *data = (Data_for_Message_Queue*) shared_memory_for_worker` adalah konversi (_casting_) _pointer_ `shared_memory_for_worker` bertipe `void*` ke tipe _pointer_ `Data_for_Message_Queue*`. Ini memungkinkan akses langsung ke `struct Data_for_Message_Queue` yang ada di dalam _shared memory_.
 
 ```c
 data->message_count = client_data->message_counter;
 data->worker_count = worker_count;
 ```
-[penjelasan]
+Bagian ini menyimpan informasi penting ke dalam _shared memory_ yang akan diakses oleh proses _worker_. Nilai `message_counter` dari _client_ disimpan ke `data->message_count`, dan jumlah _worker_ yang dimasukkan _user_ disimpan ke `data->worker_count`.
 
 ```c
 // Message Queue untuk worker
@@ -507,11 +508,12 @@ for (int i = 1; i <= client_data->message_counter; i++)
 shmdt(shared_memory_for_worker);
 shmdt(client_message);
 ```
-[penjelasan]
+Fungsi `shmdt` adalah fungsi yang digunakan untuk melepaskan _shared memory_ yang sebelumnya telah dipetakan. Fungsi ini memastikan bahwa proses tidak lagi mengakses _shared memory_ baik dari struktur data `shared_memory_for_worker` dan `client_message`.
 
 ```c
 return 0;
 ```
+Kode diakhiri oleh `return 0` yang menandakan bahwa program telah berhasil dieksekusi tanpa _error_.
 
 ### Foto Hasil Output
 
