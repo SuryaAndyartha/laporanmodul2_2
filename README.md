@@ -245,5 +245,229 @@ Kode diakhiri oleh `return 0` yang menandakan bahwa program telah berhasil dieks
 
 ### Foto Hasil Output
 
-Sebelum:
 ![image alt](https://github.com/SuryaAndyartha/laporanmodul2_2/blob/main/Screenshot%202025-04-29%20at%2007.06.58.png?raw=true)
+
+### b. loadbalancer.c; Code Lengkap:
+
+```c
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/ipc.h>
+#include <sys/shm.h>
+#include <sys/msg.h>
+
+#define MAX_STRING 512
+
+typedef struct SharedMessage{
+    char message[MAX_STRING];
+    int message_counter;
+} SharedMessage;
+
+typedef struct {
+    int worker_count;
+    int message_count;
+} Data_for_Message_Queue; 
+
+typedef struct {
+    long int worker_number;
+    char message[MAX_STRING];
+} Message_for_Worker;
+
+int main()
+{
+    // Shared Memory untuk pesan dari client.c
+    key_t key = 1234;
+    int shmid1 = shmget(key, sizeof(SharedMessage), IPC_CREAT | 0666);
+    if(shmid1 == -1){
+        printf("shmget gagal.\n");
+        return 1;
+    }
+
+    void* client_message = shmat(shmid1, NULL, 0);
+    if(client_message == (void *)-1){
+        printf("shmat gagal.\n");
+        return 2;
+    }
+
+    SharedMessage *client_data =  (SharedMessage*)client_message;
+
+    FILE *log_file = fopen("sistem.log", "a");
+    if(log_file == NULL){
+        printf("fopen gagal.\n");
+        return 3;
+    }
+
+    for (int i = 1; i <= client_data->message_counter; i++)
+    {
+        fprintf(log_file, "Received at lb: %s (#message %d)\n", client_data->message, i);
+    }
+
+    fclose(log_file);
+    shmctl(shmid1, IPC_RMID, NULL);
+
+    int worker_count;
+    scanf("%d", &worker_count);
+ 
+    // Shared Memory untuk worker
+    key = 4321;
+    int shmid2 = shmget(key, sizeof(Data_for_Message_Queue), IPC_CREAT | 0666);
+    if(shmid2 == -1){
+        printf("shmget gagal.\n");
+        return 1;
+    }
+
+    void* shared_memory_for_worker = shmat(shmid2, NULL, 0);
+    if(shared_memory_for_worker == (void *)-1){
+        printf("shmat gagal.\n");
+        return 2;
+    }
+
+    Data_for_Message_Queue *data = (Data_for_Message_Queue*) shared_memory_for_worker;
+
+    data->message_count = client_data->message_counter;
+    data->worker_count = worker_count;
+
+    // Message Queue untuk worker
+    Message_for_Worker buff;
+    int msgid;
+    key = 2143;
+    msgid = msgget(key, 0666 | IPC_CREAT);
+    int index_worker = 1;
+    for (int i = 1; i <= client_data->message_counter; i++)
+    {
+        if (index_worker > worker_count) index_worker -= worker_count;
+        buff.worker_number = index_worker;
+        strcpy(buff.message, client_data->message);
+        msgsnd(msgid, &buff, sizeof(MAX_STRING), 0);
+        index_worker++;
+    }
+    
+    shmdt(shared_memory_for_worker);
+    shmdt(client_message);
+
+    return 0;
+}
+```
+
+### Penjelasan:
+
+```c
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/ipc.h>
+#include <sys/shm.h>
+#include <sys/msg.h>
+```
+[penjelasan]
+
+```c
+
+```
+
+### Foto Hasil Output
+
+![image alt](https://github.com/SuryaAndyartha/laporanmodul2_2/blob/main/Screenshot%202025-04-29%20at%2007.08.11.png?raw=true)
+
+### c. worker.c; Code Lengkap:
+
+```c
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/ipc.h>
+#include <sys/shm.h>
+#include <sys/msg.h>
+
+#define MAX_STRING 512
+
+typedef struct {
+    int worker_count;
+    int message_count;
+} Data_for_Message_Queue; 
+
+typedef struct {
+    long int worker_number;
+    char message[MAX_STRING];
+} Message_for_Worker;
+
+int main()
+{
+
+    // Shared Memory untuk jumlah worker
+    key_t key = 4321;
+    int shmid = shmget(key, sizeof(Data_for_Message_Queue), IPC_CREAT | 0666);
+    if(shmid == -1){
+        printf("shmget gagal.\n");
+        return 1;
+    }
+
+    void* shared_memory_for_worker = shmat(shmid, NULL, 0);
+    if(shared_memory_for_worker == (void *)-1){
+        printf("shmat gagal.\n");
+        return 2;
+    }
+
+    Data_for_Message_Queue *data = (Data_for_Message_Queue*) shared_memory_for_worker;
+
+    int message_count = data->message_count;
+    int worker_count = data->worker_count;
+
+    // Message Queue untuk worker
+    FILE *log_file = fopen("sistem.log", "a");
+    if(log_file == NULL){
+        printf("fopen gagal.\n");
+        return 3;
+    }
+
+    int counter_message_received[worker_count];
+    for (int i = 0; i < worker_count; i++) // Init
+        counter_message_received[i] = 0;
+
+    key = 2143;
+    int msgid = msgget(key, 0666 | IPC_CREAT);
+    int index_worker = 1;
+    Message_for_Worker msg;
+    for (int i = 0; i < message_count; i++)
+    {
+        if (index_worker > worker_count) index_worker -= worker_count;
+
+        msgrcv(msgid, &msg, sizeof(MAX_STRING), index_worker, 0);
+        if (msg.worker_number != index_worker)
+        {
+            printf("Index worker mismatch\n");
+            return -1;
+        }
+
+        fprintf(log_file, "Worker%d: message received\n", index_worker);
+
+        counter_message_received[index_worker-1]++;
+
+        index_worker++;
+    }
+
+    for (int i = 0; i < worker_count; i++)
+    {
+        fprintf(log_file, "Worker %d: %d messages\n", i+1, counter_message_received[i]);
+    }
+
+    fclose(log_file);
+    msgctl(msgid, IPC_RMID, NULL);
+    shmdt(shared_memory_for_worker);
+    shmctl(shmid, IPC_RMID, NULL);
+
+    return 0;
+}
+```
+
+### Penjelasan:
+
+### Foto Hasil Output
+
+![image alt](https://github.com/SuryaAndyartha/laporanmodul2_2/blob/main/Screenshot%202025-04-29%20at%2007.08.38.png?raw=true)
+
+---
