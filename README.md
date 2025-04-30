@@ -375,7 +375,7 @@ typedef struct SharedMessage{
     int message_counter;
 } SharedMessage;
 ```
-Di bagian ini, kode akan membuat sebuah `struct` dengan `typedef struct SharedMessage`, yang berfungsi untuk mengelompokkan dua data: `message`, yaitu _array_ karakter berukuran `MAX_STRING` yang akan menyimpan pesan dari _input_, dan `message_counter`, yaitu variabel bertipe `int` yang akan menyimpan jumlah pesan.
+Di bagian ini, kode akan membuat sebuah `struct` dengan `typedef struct SharedMessage`, yang berfungsi untuk mengelompokkan dua data: `message`, yaitu _array_ karakter berukuran `MAX_STRING` yang akan menyimpan pesan _input_ dari _client_, dan `message_counter`, yaitu variabel bertipe `int` yang akan menyimpan jumlah pesan.
 
 ```c
 typedef struct {
@@ -391,7 +391,7 @@ typedef struct {
     char message[MAX_STRING];
 } Message_for_Worker;
 ```
-Di bagian ini, kode akan membuat sebuah `struct` dengan `typedef struct Message_for_Worker`, yang berfungsi untuk mengelompokkan dua data: `worker_number`, yaitu variabel bertipa `long int` untuk menunjukkan nomor _worker_ tujuan, dan `message`, yaitu  _array_ karakter berukuran `MAX_STRING` untuk menyimpan isi pesan yang akan dikirim ke _worker_.
+Di bagian ini, kode akan membuat sebuah `struct` dengan `typedef struct Message_for_Worker`, yang berfungsi untuk mengelompokkan dua data: `worker_number`, yaitu variabel bertipe `long int` untuk menunjukkan nomor _worker_ tujuan, dan `message`, yaitu  _array_ karakter berukuran `MAX_STRING` untuk menyimpan isi pesan yang akan dikirim ke _worker_.
 
 ```c
 int main()
@@ -444,7 +444,7 @@ Jika pembukaan _log file_ tidak gagal, maka akan ada bagian yang digunakan untuk
 fclose(log_file);
 shmctl(shmid1, IPC_RMID, NULL);
 ```
-Setelah selesai menulis, _file_ ditutup menggunakan `fclose(log_file)` untuk memastikan tidak ada kebocoran sumber daya atau hal tidak diinginkan lainnya. Lalu akan ada baris yang memanggil `shmctl` untuk menghapus _shared memory segment_ dengan ID `shmid1`. Parameter `IPC_RMID` menunjukkan bahwa memori tersebut akan dihapus, dan paramter `NULL` berarti program tidak mmebutuhkan `struct` tambahan.
+Setelah selesai menulis, _file_ ditutup menggunakan `fclose(log_file)` untuk memastikan tidak ada kebocoran sumber daya atau hal tidak diinginkan lainnya. Lalu akan ada baris yang memanggil `shmctl` untuk menghapus _shared memory segment_ dengan ID `shmid1`. Parameter `IPC_RMID` menunjukkan bahwa memori tersebut akan dihapus, dan paramter `NULL` berarti program tidak membutuhkan `struct` tambahan.
 
 ```c
 int worker_count;
@@ -480,7 +480,7 @@ Data_for_Message_Queue *data = (Data_for_Message_Queue*) shared_memory_for_worke
 data->message_count = client_data->message_counter;
 data->worker_count = worker_count;
 ```
-Bagian ini menyimpan informasi penting ke dalam _shared memory_ yang akan diakses oleh proses _worker_. Nilai `message_counter` dari _client_ disimpan ke `data->message_count`, dan jumlah _worker_ yang dimasukkan _user_ disimpan ke `data->worker_count`.
+Bagian ini menyimpan informasi penting ke dalam _shared memory_ yang akan diakses oleh proses _worker_. Nilai `message_count` dari _client_ disimpan ke `data->message_count`, dan jumlah _worker_ yang dimasukkan _user_ disimpan ke `data->worker_count`.
 
 ```c
 // Message Queue untuk worker
@@ -642,12 +642,12 @@ int main()
 #include <sys/shm.h>
 #include <sys/msg.h>
 ```
-[penjelasan]
+Kode dimulai oleh beberapa _library_ penting untuk menjalankan program sesuai yang diinginkan. `#include <stdio.h>` menyediakan fungsi `printf`, `fprintf`, dan `fopen`. `#include <stdlib.h>` menyediakan fungsi `exit`. `#include <unistd.h>` menyediakan fungsi `shmdt`. `#include <sys/ipc.h>` menyediakan tipe data `key_t`. `#include <sys/shm.h>` menyediakan fungsi `shmget`, `shmat`, `shmdt`, dan `shmctl`. `#include <sys/msg.h>` menyediakan fungsi `msgget`, `msgrcv`, dan `msgctl`.
 
 ```c
 #define MAX_STRING 512
 ```
-[penjelasan]
+Bagian ini mendefinisikan ukuran maksimal _array_ karakter yang akan digunakan untuk menyimpan _string_ sebagai 512 dengan `#define MAX_STRING 512`.
 
 ```c
 typedef struct {
@@ -655,7 +655,7 @@ typedef struct {
     int message_count;
 } Data_for_Message_Queue; 
 ```
-[penjelasan]
+Di bagian ini, kode akan membuat sebuah `struct` dengan `typedef struct Data_for_Message_Queue`, yang berfungsi untuk mengelompokkan dua data: `worker_count`, yaitu variabel bertipe `int` untuk menyimpan jumlah _worker_ yang tersedia, dan `message_count` yang merupakan variabel bertipe `int` juga untuk menyimpan total jumlah pesan dari _client_ yang didapatkan melalui _loadbalancer_.
 
 ```c
 typedef struct {
@@ -663,7 +663,7 @@ typedef struct {
     char message[MAX_STRING];
 } Message_for_Worker;
 ```
-[penjelasan]
+Di bagian ini, kode akan membuat sebuah `struct` dengan `typedef struct Message_for_Worker`, yang berfungsi untuk mengelompokkan dua data: `worker_number`, yaitu variabel bertipe `long int` untuk menunjukkan nomor _worker_ yang akan dituju, dan `message`, yaitu  _array_ karakter berukuran `MAX_STRING` untuk menyimpan isi pesan telah dikirim ke _worker_.
 
 ```c
 int main()
@@ -679,7 +679,9 @@ int main()
     ...
 }
 ```
-[penjelasan]
+`int main(){...}` adalah fungsi utama yang menjadi titik masuk eksekusi program. Di dalamnya, program dimulai dan dieksekusi.
+Setelahnya, terdapat bagian yang akan mendeklarasikan sebuah variabel `key` bertipe `key_t` dan memberinya nilai `4321` untuk mengakses _shared memory_ antara _load balancer_ dan _worker_. Berikutnya ada fungsi `shmget` yang memiliki tiga parameter. Parameter pertama adalah `key`. Parameter kedua adalah `sizeof(Data_for_Message_Queue)`, yang menentukan ukuran dari _shared memory_, dalam kasus ini ukuran `Data_for_Message_Queue`. Parameter ketiga adalah `flag`, yaitu `IPC_CREAT` untuk membuat _shared memory_ jika belum ada dan `0666` untuk menentukan izin akses (_read and write_). Jika `shmget` gagal, maka `shmid` akan bernilai `-1`, sehingga program akan mencetak pesan `"shmget gagal."` dan mengembalikan nilai `1` sebagai tanda kegagalan.
+
 
 ```c
 void* shared_memory_for_worker = shmat(shmid, NULL, 0);
@@ -688,18 +690,18 @@ if(shared_memory_for_worker == (void *)-1){
     return 2;
 }
 ```
-[penjelasan]
+`void* shared_memory_for_worker` adalah sebuah _pointer_ bertipe `void*` (tipe ini mampu menyimpan berbagai tipe data) yang digunakan untuk menyimpan alamat memori dari _shared memory_ antara _load balancer_ dan _worker_. Variabel ini akan menyimpan nilai yang dikembalikan oleh fungsi `shmat` dengan tiga parameter. Parameter pertama adalah `shmid`, yaitu ID _shared memory_. Parameter kedua adalah `NULL` yang berarti sistem akan memilih alamat yang sesuai untuk pemetaan. Parameter ketiga adalah `flag`, yang diatur ke 0 untuk pemetaan standar. Jika gagal, `shmat` akan mengembalikan `(void *)-1`, sehingga program akan mencetak pesan `"shmat gagal."` dan mengembalikan `nilai 2` sebagai tanda kegagalan. (Nilai `return` yang berbeda hanya digunakan untuk memudahkan pemeriksaan kesalahan/_debugging_).
 
 ```c
 Data_for_Message_Queue *data = (Data_for_Message_Queue*) shared_memory_for_worker;
 ```
-[penjelasan]
+`Data_for_Message_Queue *data = (Data_for_Message_Queue*) shared_memory_for_worker` adalah konversi (_casting_) _pointer_ `shared_memory_for_worker` bertipe `void*` ke tipe _pointer_ `Data_for_Message_Queue*`. Ini memungkinkan akses langsung ke `struct Data_for_Message_Queue` yang ada di dalam _shared memory_.
 
 ```c
 int message_count = data->message_count;
 int worker_count = data->worker_count;
 ```
-[penjelasan]
+Bagian ini menyimpan informasi penting ke dalam _shared memory_ yang akan dioperasikan oleh proses _worker_. Nilai `message_count` dari _loadbalancer_ disimpan ke `data->message_count`, dan jumlah _worker_ yang dimasukkan _user_ melalui transfer _shared memory_ disimpan ke `data->worker_count`.
 
 ```c
 FILE *log_file = fopen("sistem.log", "a");
@@ -708,14 +710,14 @@ if(log_file == NULL){
     return 3;
 }
 ```
-[penjelasan]
+`FILE *log_file = fopen("sistem.log", "a")` akan membuka _log file_ bernama `sistem.log` dalam mode _append_ (`"a"`) menggunakan fungsi `fopen`. Mode _append_ berarti data baru akan ditambahkan ke akhir _file_ jika _file_ tersebut sudah ada. Jika _file_ tidak ada, maka _file_ baru akan dibuat. Jika _log file_ gagal dibuka (`if(log_file == NULL)`), akan dicetak pesan `"fopen gagal."` dan program mengembalikan nilai dengan `return 3` sebagai tanda kegagalan. 
 
 ```c
 int counter_message_received[worker_count];
 for (int i = 0; i < worker_count; i++) // Init
     counter_message_received[i] = 0;
 ```
-[penjelasan]
+Bagian ini digunakan untuk mendeklarasikan dan menginisialisasi _array_ `counter_message_received` yang berfungsi menyimpan jumlah pesan yang diterima oleh masing-masing _worker_. _Array tersebut memiliki panjang sebesar jumlah worker (worker_count)_, dan setiap indeks diatur ke `0` dengan _looping_ `for`, menandakan bahwa belum ada pesan yang diterima pada awal program.
 
 ```c
 key = 2143;
@@ -723,28 +725,49 @@ int msgid = msgget(key, 0666 | IPC_CREAT);
 int index_worker = 1;
 Message_for_Worker msg;
 ```
-[penjelasan]
+Bagian ini bertujuan untuk mendapatkan _message queue_ yang akan diterima oleh masing-masing _worker_. Pertama, `key` diatur ke `2143` (hanya sebagai pembeda). Setelah itu, fungsi `msgget(key, 0666 | IPC_CREAT)` dipanggil dan hasilnya disimpan dalam `msgid`. `msgget` memiliki dua parameter: parameter pertama adalah `key` dan parameter kedua adalah `flag` yang terdiri dari `0666` (izin _read_ and _write_) serta `IPC_CREAT` untuk membuat _message queue_ jika belum ada. Terakhir, `index_worker` diatur ke `1` sebagai penanda awal _worker_ yang akan menerima pesan pertama.
 
 ```c
 for (int i = 0; i < message_count; i++)
 {
-    if (index_worker > worker_count) index_worker -= worker_count;
-
-    msgrcv(msgid, &msg, sizeof(MAX_STRING), index_worker, 0);
-    if (msg.worker_number != index_worker)
-    {
-        printf("Index worker mismatch\n");
-        return -1;
-    }
-
-    fprintf(log_file, "Worker%d: message received\n", index_worker);
-
-    counter_message_received[index_worker-1]++;
-
-    index_worker++;
+    ...
 }
 ```
-[penjelasan]
+Bagian ini merupakan proses distribusi dan pencatatan pesan yang diterima oleh masing-masing _worker_ menggunakan _looping_ `for` yang akan dijalankan sebanyak `message_count`, yaitu jumlah total pesan yang dikirim. Di dalam _loop_, akan dilakukan:
+
+   - ```c
+     if (index_worker > worker_count) index_worker -= worker_count;
+     ```
+     Jika `index_worke`r melebihi jumlah _worker_, maka dikurangi dengan `worker_count` agar kembali ke urutan worker pertama (metode _round-robin_).
+
+   - ```c
+     msgrcv(msgid, &msg, sizeof(MAX_STRING), index_worker, 0);
+     ```
+     Fungsi `msgrcv(msgid, &msg, sizeof(MAX_STRING), index_worker, 0)` dipanggil untuk menerima pesan dari _message queue_ dengan ID `msgid`. Parameter pertama adalah `msgid` yaitu ID dari _message queue_ dan parameter kedua adalah `&msg` yang merupakan _pointer_ ke _buffer_ tempat pesan disimpan. Parameter ketiga adalah `sizeof(MAX_STRING)`, yaitu ukuran data yang ingin diterima. Paramter keempat adalah `index_worker` atau tipe pesan yang ingin diterima dan terakhir merupakan `flag` yang diatur ke `0` dengan arti akan terjadi _blocking_ (menunggu sampai ada pesan).
+
+   - ```c
+     if (msg.worker_number != index_worker)
+     {
+        printf("Index worker mismatch\n");
+        return -1;
+     }
+     ```
+     Terjadi pemeriksaan apakah `msg.worker_number` sama dengan `index_worker` untuk memastikan bahwa pesan tersebut benar-benar ditujukan untuk _worker_ yang tepat. Jika tidak, program akan menampilkan pesan _error_ dan berhenti.
+
+   - ```c
+     fprintf(log_file, "Worker%d: message received\n", index_worker);
+     ```
+     Jika cocok, maka program mencatat di _log file_ bahwa _Worker_ ke-`i` telah menerima pesan.
+
+   - ```c
+     counter_message_received[index_worker-1]++;
+     ```
+     Nilai pada `counter_message_received[index_worker-1]` ditambahkan satu untuk mencatat jumlah pesan yang diterima oleh _worker_ tersebut.
+
+   - ```c
+     index_worker++;
+     ```
+     `index_worker` kemudian ditambah untuk pindah ke _worker_ berikutnya di iterasi selanjutnya.
 
 ```c
 for (int i = 0; i < worker_count; i++)
@@ -752,7 +775,7 @@ for (int i = 0; i < worker_count; i++)
     fprintf(log_file, "Worker %d: %d messages\n", i+1, counter_message_received[i]);
 }
 ```
-[penjelasan]
+Di bagian ini, program akan mencetak jumlah pesan yang diterima oleh masing-masing _worker_ ke dalam _log file_. Dengan menggunakan _looping_ `for`, program akan menelusuri setiap indeks _array_ `counter_message_received` (yang menyimpan jumlah pesan setiap worker), lalu mencetaknya ke _file_ dengan format yang sudah ditentukan. `i+1` digunakan agar nomor _worker_ dimulai dari `1`, bukan `0`.
 
 ```c
 fclose(log_file);
@@ -760,12 +783,13 @@ msgctl(msgid, IPC_RMID, NULL);
 shmdt(shared_memory_for_worker);
 shmctl(shmid, IPC_RMID, NULL);
 ```
-[penjelasan]
+Bagian ini bertujuan untuk memastikan tidak ada kebocoran sumber daya atau hal yang tidak diinginkan lainnya. `fclose(log_file)` akan menutup _log file_ yang sebelumnya dibuka. `msgctl(msgid, IPC_RMID, NULL)` akan menghapus _message queue_ dari sistem menggunakan ID `msgid`. `shmdt(shared_memory_for_worker)` akan melepas _shared memory_ dari proses saat ini.
+`shmctl(shmid, IPC_RMID, NULL)` akan menghapus _shared memory_ dari sistem.
 
 ```c
 return 0;
 ```
-[penjelasan]
+Kode diakhiri oleh `return 0` yang menandakan bahwa program telah berhasil dieksekusi tanpa _error_.
 
 ### Foto Hasil Output
 
